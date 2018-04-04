@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c003b427975a33c799f0f3ae7f6b47eed33d78f70804ce3be206e36517c38bcb
+-- hash: 878e119acc8c687a7b6e5efc85c5be95899738d0e7f33b2b691c7e978937569a
 
 name:           if
 version:        0.1.0.0
@@ -30,9 +30,12 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , matrices
+    , deepseq
+    , matrix
     , parsec
+    , primes
     , scalpel
+    , sparse-lin-alg
     , tagsoup
     , text
   exposed-modules:
@@ -45,13 +48,16 @@ executable if-exe
   main-is: Main.hs
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -O2
   build-depends:
       base >=4.7 && <5
+    , deepseq
     , if
-    , matrices
+    , matrix
     , parsec
+    , primes
     , scalpel
+    , sparse-lin-alg
     , tagsoup
     , text
   other-modules:
@@ -66,10 +72,13 @@ test-suite if-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , deepseq
     , if
-    , matrices
+    , matrix
     , parsec
+    , primes
     , scalpel
+    , sparse-lin-alg
     , tagsoup
     , text
   other-modules:

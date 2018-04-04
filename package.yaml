@@ -21,11 +21,14 @@ description:         Please see the README on Github at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- deepseq
 - text
 - scalpel
 - tagsoup
 - parsec
-- matrices
+- matrix
+- primes
+- sparse-lin-alg
 
 library:
   source-dirs: src
@@ -38,6 +41,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -O2
     dependencies:
     - if
 
