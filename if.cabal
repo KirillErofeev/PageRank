@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 878e119acc8c687a7b6e5efc85c5be95899738d0e7f33b2b691c7e978937569a
+-- hash: 0678f1b95017fbf5043b9e914ed9276a58f0dc073a0a49bd8b4535e152e3f3ae
 
 name:           if
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       base >=4.7 && <5
     , deepseq
     , matrix
+    , parallel
     , parsec
     , primes
     , scalpel
@@ -54,6 +55,7 @@ executable if-exe
     , deepseq
     , if
     , matrix
+    , parallel
     , parsec
     , primes
     , scalpel
@@ -75,6 +77,7 @@ test-suite if-test
     , deepseq
     , if
     , matrix
+    , parallel
     , parsec
     , primes
     , scalpel

@@ -29,6 +29,7 @@ dependencies:
 - matrix
 - primes
 - sparse-lin-alg
+- parallel
 
 library:
   source-dirs: src

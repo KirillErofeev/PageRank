@@ -17,6 +17,9 @@ import Text.Parsec (many1, anyChar, digit, letter, skipMany1, parse)
 
 import Debug.Trace as DT
 
+import Control.Parallel
+
+
 infixl 4 <$$>
 (<$$>) = (fmap . fmap)
 
@@ -26,6 +29,7 @@ kpfFilt ref = not (elem '#' ref)                 &&
               ref /= "https://ex.kpfu.ru"        &&
               length ref > 11                    &&
               (not . isInfixOf "javascript") ref &&
+              (not . isInfixOf "doi.org") ref &&
               (not . isInfixOf ".jpg") ref 
 
 
@@ -50,10 +54,12 @@ test = getRefs sourceUrl
 
 getRefs :: URL -> IO (Maybe [URL])
 getRefs sourceUrl = DT.trace sourceUrl $
-        scrapeURL sourceUrl refs >>= (\(Just x) ->
-        print (length x)         >>  (return $ Just x))
+        scrapeURL sourceUrl refs >>= d
             where
     refs = attrs "href" "a"
+    d (Just x) = (putStr . (++ " ") . show) (length x) >> (return $ Just x)
+    d Nothing = (putStr . (++ " ") . show) (0) >> (return $ Just [])
+
 
 isRef sourceUrl soughtUrl = DT.trace "isRef" $ (fmap . fmap) (DT.trace "is elem" $ boolToInt . (elem soughtUrl)) (getRefs sourceUrl) where
     boolToInt False = 0
@@ -75,18 +81,45 @@ toSth mat =
      toLists                             $
      mat
 
-n = 100
+n  = 30
+n' = 47
 
-m = do
+runM = m n
+runM' = m' n'
+
+zrefs n = do
     Just refs <- getRefs sourceUrl
     listRefs' <- sequenceA $ (fmap getRefs . fmap toRef . take n . filter kpfFilt) refs
     let listRefs = map maybeToList listRefs'
     let zrefs' = zipWith Ref refs listRefs
     let zrefs = zip [1..] zrefs'
-    print $ length zrefs
+    return zrefs
 
+sequential zrefs = do
     let adjMatrix = toSth . fmap boolToDouble . matrix n n $ matrixGen zrefs
     print $ adjMatrix
+    let startV = matrix n 1 (\(_,_) -> 0.5)
+    let eigVector = getEigvec multStd2 startV (transpose adjMatrix) 0.001
+    print (transpose eigVector)
+    return (transpose eigVector)
+
+parallel zrefs adjMatrix = do
+    let sAdjMatrix = sparseMx . toLists . transpose $ adjMatrix
+    let sStartV = sparseList . take n . repeat $ 0.5
+    let sEigVector = getEigvec mult' sStartV (sAdjMatrix) 0.001
+    print (sEigVector)
+    return ()
+
+m n = do
+    Just refs <- getRefs sourceUrl
+    listRefs' <- sequenceA $ (fmap getRefs . fmap toRef . take n . filter kpfFilt) refs
+    let listRefs = map maybeToList listRefs'
+    let zrefs' = zipWith Ref refs listRefs
+    let zrefs = zip [1..] zrefs'
+    --print $ length zrefs
+
+    let adjMatrix = toSth . fmap boolToDouble . matrix n n $ matrixGen zrefs
+    --print $ adjMatrix
     let startV = matrix n 1 (\(_,_) -> 0.5)
     let eigVector = getEigvec multStd2 startV (transpose adjMatrix) 0.001
 
@@ -100,6 +133,30 @@ m = do
     writeFile "data/seig" (show . vecToAssocList $ sEigVector)
 
     return (transpose eigVector, sEigVector)
+
+m' n = do
+    Just refs <- getRefs sourceUrl
+    listRefs' <- sequenceA $ (fmap getRefs . fmap toRef . take n . filter kpfFilt) refs
+    let listRefs = map maybeToList listRefs'
+    let zrefs' = zipWith Ref refs listRefs
+    let zrefs = zip [1..] zrefs'
+    --print $ length zrefs
+
+    let adjMatrix = toSth . fmap boolToDouble . matrix n n $ matrixGen zrefs
+    --print $ adjMatrix
+    let startV = matrix n 1 (\(_,_) -> 0.5)
+    let eigVector = getEigvec multStd2 startV (transpose adjMatrix) 0.001
+
+    let sAdjMatrix = sparseMx . toLists . transpose $ adjMatrix
+    let sStartV = sparseList . take n . repeat $ 0.5
+    let sEigVector = getEigvec mulMV sStartV (sAdjMatrix) 0.001
+
+    writeFile "data/matrix" (show . toList $ adjMatrix)
+    writeFile "data/smatrix" (show . toAssocList $ sAdjMatrix)
+    writeFile "data/eig" (show . toList $ eigVector)
+    writeFile "data/seig" (show . vecToAssocList $ sEigVector)
+
+    return sEigVector
 
 boolToDouble True  = 1.0
 boolToDouble False = 0.0
@@ -134,3 +191,26 @@ tv = fromList 3 1 (norming [0.1,11,0.5])
 
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
+
+parHelp :: ( Num a ) => [a] -> [a] -> a 
+parHelp [] [] = 0
+parHelp (x : xs ) (y : ys) = ret where 
+ ret = par a (pseq b (a + b)) where 
+        a = x * y 
+        b = parHelp xs ys
+
+helpMult :: (Num a) => [a] -> [[a]] -> [a]
+helpMult _ [] = [] 
+helpMult x (y:ys) = ret where 
+ ret =  par a (pseq b  (a:b)) where 
+   a = sum . zipWith (*) x $ y
+   b = helpMult x ys
+
+mult :: (Num a) => [[ a ] ] -> [ [ a ] ] -> [ [ a ] ]
+mult [] _ = []
+mult ( x : xs ) ys = ret where
+ ret = par a ( pseq b  ( a : b ) ) where
+    a = helpMult x ys
+    b = mult xs ys
+
+mult' = mulMV
